@@ -1,18 +1,46 @@
 # OS files
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
 
 # IDEs
 .vscode/
 .idea/
+*.sublime-project
+*.sublime-workspace
 
-# Environment
+# Environment & Secrets
 .env
 *.env
+.env.*
+!.env.example
+secrets.json
 
 # Build and Dependencies
 node_modules/
-venv/
-.venv/
 dist/
 build/
+bin/
+obj/
+
+# Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# Databases
+postgres_data/
+*.sqlite3
+*.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
