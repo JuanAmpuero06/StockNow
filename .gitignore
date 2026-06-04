@@ -44,3 +44,13 @@ postgres_data/
 *.log
 npm-debug.log*
 yarn-debug.log*
+
+# Docker
+docker-compose.override.yml
+.docker/
+
+# Temp files
+*.tmp
+*.temp
+*.bak
+.history/

@@ -15,12 +15,18 @@ StockNow is a professional inventory management system built with a modern full-
 
 ```text
 StockNow/
-├── backend/            # FastAPI application
-│   ├── models/         # Database models (SQLAlchemy)
+backend/            # FastAPI application
+│   ├── app/            # Source code
+│   │   ├── api/        # API Routes (v1, v2...)
+│   │   ├── core/       # Database & Security config
+│   │   ├── models/     # SQLAlchemy Models
+│   │   ├── repositories/# Data access logic (Repository Pattern)
+│   │   └── schemas/    # Pydantic Schemas
 │   ├── tests/          # Pytest suite
 │   ├── Dockerfile      # Python 3.11-slim build
 │   └── main.py         # Application entry point
-├── frontend/           # React application
+frontend/           # React application
+
 │   ├── src/            # Application source (TSX)
 │   ├── Dockerfile      # Multi-stage Nginx build
 │   └── vite.config.ts  # Vite configuration
