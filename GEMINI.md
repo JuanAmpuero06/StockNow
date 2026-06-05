@@ -7,8 +7,8 @@ StockNow is a professional inventory management system built with a modern full-
 *   **Purpose:** Professional inventory management system.
 *   **Architecture:** Decoupled Frontend and Backend with dedicated database and cache services.
 *   **Tech Stack:**
-    *   **Backend:** FastAPI (Python), SQLAlchemy, PostgreSQL, Redis.
-    *   **Frontend:** React (TypeScript), Vite, Tailwind CSS v4.
+    *   **Backend:** FastAPI (Python), SQLAlchemy, PostgreSQL, Redis (Cache-Aside Strategy).
+    *   **Frontend:** React (TypeScript), Vite, Tailwind CSS v4, TanStack React Query, Axios.
     *   **DevOps:** Docker, Docker Compose.
 
 ## Project Structure
@@ -18,7 +18,7 @@ StockNow/
 backend/            # FastAPI application
 │   ├── app/            # Source code
 │   │   ├── api/        # API Routes (v1, v2...)
-│   │   ├── core/       # Database & Security config
+│   │   ├── core/       # Database & Redis config
 │   │   ├── models/     # SQLAlchemy Models
 │   │   ├── repositories/# Data access logic (Repository Pattern)
 │   │   └── schemas/    # Pydantic Schemas
@@ -26,8 +26,12 @@ backend/            # FastAPI application
 │   ├── Dockerfile      # Python 3.11-slim build
 │   └── main.py         # Application entry point
 frontend/           # React application
-
 │   ├── src/            # Application source (TSX)
+│   │   ├── api/        # Axios client & API calls
+│   │   ├── components/ # Shared UI components
+│   │   ├── hooks/      # Custom React Query hooks
+│   │   ├── pages/      # View components
+│   │   └── types/      # TypeScript definitions
 │   ├── Dockerfile      # Multi-stage Nginx build
 │   └── vite.config.ts  # Vite configuration
 ├── docker-compose.yml  # Orchestration for all services
