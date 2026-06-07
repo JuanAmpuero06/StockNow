@@ -19,8 +19,14 @@ def override_get_redis():
     mock_redis.get.return_value = None
     return mock_redis
 
-app.dependency_overrides[get_db] = override_get_db
-app.dependency_overrides[get_redis] = override_get_redis
+import pytest
+
+@pytest.fixture(autouse=True)
+def setup_overrides():
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_redis] = override_get_redis
+    yield
+    app.dependency_overrides.clear()
 
 def test_get_product_not_found():
     response = client.get("/api/v1/products/1")

@@ -7,7 +7,7 @@ from pydantic import TypeAdapter
 from app.core.database import get_db
 from app.core.redis import get_redis
 from app.repositories.product import ProductRepository
-from app.schemas.product import ProductCreate, ProductResponse
+from app.schemas.product import *
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -26,26 +26,27 @@ def list_products(
     cache = Depends(get_redis)
 ):
     """
-    Retorna el catálogo con estrategia Cache-Aside.
+    Retorna el catálogo con estrategia Cache-Aside e hidratación estricta de Pydantic v2.
     """
-    # 1. Definir una llave única en Redis basada en la paginación
     cache_key = f"products:all:skip={skip}:limit={limit}"
     
-    # 2. Intentar leer de Redis (Cache Hit)
+    # 1. Intentar leer de Redis (Cache Hit)
     cached_products = cache.get(cache_key)
     if cached_products:
-        # Deserializamos el JSON string directamente a objetos de Pydantic
         return products_adapter.validate_json(cached_products)
         
-    # 3. Si no está en Redis (Cache Miss), ir a PostgreSQL
+    # 2. Si no está en Redis (Cache Miss), ir a PostgreSQL
     products = repo.list(skip=skip, limit=limit)
     
-    # 4. Guardar el resultado en Redis serializado como JSON string
-    # Le asignamos un TTL (Time to Live) de 300 segundos (5 minutos) para que expire solo
-    json_data = products_adapter.dump_json(products).decode("utf-8")
+    # ⚡ CORRECCIÓN CRUCIAL: Convertir los modelos de SQLAlchemy a modelos de Pydantic
+    # Aquí es donde 'from_attributes=True' hace su magia de forma explícita
+    pydantic_products = products_adapter.validate_python(products)
+    
+    # 3. Ahora que son objetos Pydantic puros, los serializamos a JSON de forma segura para Redis
+    json_data = products_adapter.dump_json(pydantic_products).decode("utf-8")
     cache.setex(cache_key, 300, json_data)
     
-    return products
+    return pydantic_products
 
 
 @router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
@@ -91,3 +92,38 @@ def get_product(
             detail=f"Producto con ID {product_id} no encontrado."
         )
     return product
+
+@router.put("/{product_id}", response_model=ProductResponse)
+def update_product(
+    product_id: int,
+    payload: ProductUpdate,
+    repo: ProductRepository = Depends(get_product_repository),
+    cache = Depends(get_redis)
+):
+    """Actualiza un producto e invalida la caché de listados"""
+    updated_product = repo.update(product_id, payload)
+    if not updated_product:
+        raise HTTPException(status_code=404, detail="Producto no encontrado.")
+        
+    # ⚡ Invalida Redis
+    keys_to_delete = cache.keys("products:all:*")
+    if keys_to_delete: cache.delete(*keys_to_delete)
+        
+    return updated_product
+
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_product(
+    product_id: int,
+    repo: ProductRepository = Depends(get_product_repository),
+    cache = Depends(get_redis)
+):
+    """Elimina un producto de forma permanente e invalida la caché"""
+    success = repo.delete(product_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Producto no encontrado.")
+        
+    # ⚡ Invalida Redis
+    keys_to_delete = cache.keys("products:all:*")
+    if keys_to_delete: cache.delete(*keys_to_delete)
+        
+    return None

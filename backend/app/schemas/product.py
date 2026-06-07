@@ -28,3 +28,8 @@ class ProductResponse(ProductBase):
 
     # Configuración para que Pydantic pueda leer modelos de SQLAlchemy directamente
     model_config = ConfigDict(from_attributes=True)
+
+class ProductUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    price: Optional[Decimal] = Field(None, gt=0, max_digits=10, decimal_places=2)
