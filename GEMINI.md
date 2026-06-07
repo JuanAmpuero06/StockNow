@@ -28,15 +28,22 @@ backend/            # FastAPI application
 frontend/           # React application
 │   ├── src/            # Application source (TSX)
 │   │   ├── api/        # Axios client & API calls
-│   │   ├── components/ # Shared UI components
-│   │   ├── hooks/      # Custom React Query hooks
-│   │   ├── pages/      # View components
+│   │   ├── components/ # Shared UI components (Cart, Modals)
+│   │   ├── hooks/      # Custom React Query hooks (CRUD, Orders)
+│   │   ├── pages/      # View components (Dashboard)
 │   │   └── types/      # TypeScript definitions
 │   ├── Dockerfile      # Multi-stage Nginx build
 │   └── vite.config.ts  # Vite configuration
 ├── docker-compose.yml  # Orchestration for all services
 └── GEMINI.md           # This instructions file
 ```
+
+## Key Features
+
+*   **Product Management:** Full CRUD (Create, Read, Update, Delete) for products and inventory.
+*   **Order System:** Transactional order creation with stock reservation and cache invalidation.
+*   **Caching Strategy:** Cache-Aside with Redis for product listings to optimize performance.
+*   **Modern UI:** Responsive dashboard with real-time feedback, product modals, and a commercial cart system.
 
 ## Building and Running
 
@@ -79,11 +86,12 @@ Run tests using `pytest` from the `backend` directory:
 cd backend
 pytest
 ```
+*Tests include coverage for core logic, products CRUD, and order cache invalidation.*
 
 ## Development Conventions
 
-*   **Workflow:** Always work with feature branches (e.g., `feature/name`). Use professional commit messages and merge into `main` using non-fast-forward merges to preserve history.
-*   **Backend Styling:** Follow PEP 8. Use Pydantic for data validation and SQLAlchemy for ORM.
-*   **Frontend Styling:** Use Tailwind CSS v4 for all styling. Ensure type safety using TypeScript.
-*   **Docker:** All environment changes must be reflected in the respective `Dockerfile` or `docker-compose.yml`.
-*   **Verification:** Before merging, ensure `docker-compose up --build` succeeds and all tests pass.
+*   **Workflow:** Always work with feature branches. Use professional commit messages.
+*   **Backend Styling:** PEP 8 compliance. Use Pydantic v2 for validation and SQLAlchemy with `joinedload` for Eager Loading optimization.
+*   **Frontend Styling:** Tailwind CSS v4 for utility-first styling. TanStack React Query for server state management.
+*   **Caching:** Any modification to products (Create, Update, Delete) or new orders must invalidate the relevant Redis keys (`products:all:*`).
+*   **Verification:** Ensure `docker-compose up --build` succeeds and all tests pass before pushing changes.
