@@ -1,7 +1,10 @@
 import os
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, DeclarativeBase
 from typing import Generator
+
+class Base(DeclarativeBase):
+    pass
 
 # 1. Recuperar la URL de la base de datos desde las variables de entorno de Docker
 DATABASE_URL = os.getenv(

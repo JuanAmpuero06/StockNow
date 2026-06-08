@@ -4,6 +4,8 @@ from app.core.database import get_db
 from app.core.redis import get_redis  # 1. Importar la dependencia de Redis
 from app.repositories.order import OrderRepository
 from app.schemas.order import OrderCreate, OrderResponse
+from app.api.v1.deps import get_current_user
+from app.models.domain import User
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -14,14 +16,14 @@ def get_order_repository(db: Session = Depends(get_db)) -> OrderRepository:
 def create_order(
     payload: OrderCreate, 
     repo: OrderRepository = Depends(get_order_repository),
-    cache = Depends(get_redis)  # 2. Inyectar el cliente de caché
+    cache = Depends(get_redis),  # 2. Inyectar el cliente de caché
+    current_user: User = Depends(get_current_user)
 ):
     """
     Registra una nueva orden en el sistema, calcula totales, reserva stock y limpia la caché de productos.
     """
-    current_user_id = 1 
     # Ejecuta la transacción en la BD
-    order = repo.create_order(user_id=current_user_id, obj_in=payload)
+    order = repo.create_order(user_id=current_user.id, obj_in=payload)
     
     # ⚡ INVALIDACIÓN DE CACHÉ DE PRODUCTOS:
     # Como el stock cambió en la BD, borramos los listados cacheados en Redis

@@ -2,11 +2,9 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from typing import List, Optional
-from sqlalchemy import String, Numeric, ForeignKey, DateTime, text, Boolean
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-
-class Base(DeclarativeBase):
-    pass
+from sqlalchemy import String, Numeric, ForeignKey, DateTime, text, Boolean, Integer
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.core.database import Base
 
 class OrderStatus(str, Enum):
     PENDING = "pending"
@@ -17,11 +15,14 @@ class OrderStatus(str, Enum):
 class User(Base):
     __tablename__ = "users"
     
-    id: Mapped[int] = mapped_column(primary_key=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    hashed_password: Mapped[str] = mapped_column(String(255))
-    role: Mapped[str] = mapped_column(String(50), server_default="customer")
-    is_active: Mapped[bool] = mapped_column(Boolean, server_default="true")
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(50), default="operator")  # admin, manager, operator
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # Relación inversa: Un usuario puede tener muchas órdenes
+    orders: Mapped[List["Order"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 class Product(Base):
     __tablename__ = "products"
@@ -59,6 +60,7 @@ class Order(Base):
     total_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
     
+    user: Mapped["User"] = relationship(back_populates="orders")
     items: Mapped[List["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan")
 
 class OrderItem(Base):
