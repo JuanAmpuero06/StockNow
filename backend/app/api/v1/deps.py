@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.models.domain import User
 from app.repositories.user import UserRepository
 from app.schemas.user import TokenData
+from typing import List
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -33,3 +34,20 @@ def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+class RoleChecker:
+    def __init__(self, allowed_roles: List[str]):
+        self.allowed_roles = allowed_roles
+
+    def __call__(self, current_user: User = Depends(get_current_user)) -> User:
+        if not current_user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La cuenta de usuario está desactivada."
+            )
+        if current_user.role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tiene permisos suficientes para realizar esta acción."
+            )
+        return current_user

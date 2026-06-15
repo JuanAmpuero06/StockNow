@@ -2,6 +2,7 @@ export interface Inventory {
   quantity: number;
   reserved_quantity: number;
   available_stock: number;
+  min_stock_threshold: number;
 }
 
 export interface Product {

@@ -58,3 +58,74 @@ def login_user(
     # El token llevará el email del usuario en el claim 'sub'
     access_token = create_access_token(subject=user.email)
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+from app.api.v1.deps import get_current_user
+from app.models.domain import User
+
+@router.get("/me", response_model=UserResponse)
+def read_users_me(current_user: User = Depends(get_current_user)):
+    """
+    Retorna los detalles del usuario autenticado actual.
+    """
+    return current_user
+
+from typing import List
+from pydantic import BaseModel
+from app.api.v1.deps import RoleChecker
+
+class RoleUpdatePayload(BaseModel):
+    role: str
+
+@router.get("/users", response_model=List[UserResponse])
+def list_users(
+    db: Session = Depends(get_db),
+    current_user = Depends(RoleChecker(["admin"]))
+):
+    """
+    Retorna la lista de todos los usuarios registrados en el sistema. (Solo Admin)
+    """
+    from app.models.domain import User as DBUser
+    return db.query(DBUser).all()
+
+@router.put("/users/{user_id}/role", response_model=UserResponse)
+def update_user_role(
+    user_id: int,
+    payload: RoleUpdatePayload,
+    db: Session = Depends(get_db),
+    current_user = Depends(RoleChecker(["admin"]))
+):
+    """
+    Modifica el rol de un usuario específico. (Solo Admin)
+    """
+    from app.models.domain import User as DBUser
+    user = db.query(DBUser).filter(DBUser.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+    
+    if payload.role not in ["admin", "manager", "operator"]:
+        raise HTTPException(status_code=400, detail="Rol inválido. Debe ser 'admin', 'manager' o 'operator'.")
+        
+    user.role = payload.role
+    db.commit()
+    db.refresh(user)
+    return user
+
+@router.put("/users/{user_id}/toggle-active", response_model=UserResponse)
+def toggle_user_active(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(RoleChecker(["admin"]))
+):
+    """
+    Activa o desactiva la cuenta de un usuario. (Solo Admin)
+    """
+    from app.models.domain import User as DBUser
+    user = db.query(DBUser).filter(DBUser.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+        
+    user.is_active = not user.is_active
+    db.commit()
+    db.refresh(user)
+    return user

@@ -48,7 +48,8 @@ class ProductRepository:
         db_inventory = Inventory(
             product_id=db_product.id,
             quantity=obj_in.initial_stock,
-            reserved_quantity=0
+            reserved_quantity=0,
+            min_stock_threshold=obj_in.min_stock_threshold
         )
         self.db.add(db_inventory)
         self.db.commit()

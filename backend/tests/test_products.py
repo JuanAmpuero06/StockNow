@@ -3,6 +3,8 @@ from unittest.mock import MagicMock
 from main import app
 from app.core.database import get_db
 from app.core.redis import get_redis
+from app.api.v1.deps import get_current_user
+from app.models.domain import User
 
 client = TestClient(app, raise_server_exceptions=False)
 
@@ -19,12 +21,17 @@ def override_get_redis():
     mock_redis.get.return_value = None
     return mock_redis
 
+# Mock de Usuario Autenticado con rol de 'user'
+def override_get_current_user():
+    return User(id=1, email="admin@example.com", role="manager", is_active=True)
+
 import pytest
 
 @pytest.fixture(autouse=True)
 def setup_overrides():
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_redis] = override_get_redis
+    app.dependency_overrides[get_current_user] = override_get_current_user
     yield
     app.dependency_overrides.clear()
 

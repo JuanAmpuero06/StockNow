@@ -12,12 +12,14 @@ class ProductBase(BaseModel):
 # Lo que el frontend envía al crear un producto (incluye el stock inicial)
 class ProductCreate(ProductBase):
     initial_stock: int = Field(0, ge=0, description="Stock inicial en almacén")
+    min_stock_threshold: int = Field(5, ge=0, description="Umbral de stock bajo")
 
 # Lo que devolvemos cuando consultan el inventario
 class InventoryResponse(BaseModel):
     quantity: int
     reserved_quantity: int
     available_stock: int
+    min_stock_threshold: int
 
     model_config = ConfigDict(from_attributes=True)
 

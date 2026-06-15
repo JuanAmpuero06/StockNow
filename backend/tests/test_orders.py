@@ -5,6 +5,8 @@ from app.core.database import get_db
 from app.core.redis import get_redis
 from app.repositories.order import OrderRepository
 from app.api.v1.orders import get_order_repository
+from app.api.v1.deps import get_current_user
+from app.models.domain import User
 
 client = TestClient(app, raise_server_exceptions=False)
 
@@ -25,6 +27,10 @@ mock_repo = MagicMock()
 def override_get_order_repository():
     return mock_repo
 
+# Mock de Usuario Autenticado
+def override_get_current_user():
+    return User(id=1, email="test@example.com", role="user", is_active=True)
+
 import pytest
 
 @pytest.fixture(autouse=True)
@@ -32,6 +38,7 @@ def setup_overrides():
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_redis] = override_get_redis
     app.dependency_overrides[get_order_repository] = override_get_order_repository
+    app.dependency_overrides[get_current_user] = override_get_current_user
     yield
     app.dependency_overrides.clear()
 

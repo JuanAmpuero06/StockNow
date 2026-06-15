@@ -43,6 +43,7 @@ class Inventory(Base):
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), unique=True)
     quantity: Mapped[int] = mapped_column(server_default="0")
     reserved_quantity: Mapped[int] = mapped_column(server_default="0")
+    min_stock_threshold: Mapped[int] = mapped_column(server_default="5")
     
     product: Mapped["Product"] = relationship(back_populates="inventory")
 

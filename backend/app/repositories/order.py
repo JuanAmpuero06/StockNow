@@ -84,3 +84,61 @@ class OrderRepository:
         except Exception as e:
             self.db.rollback()  # 🚨 Si ALGO falla, se revierte todo y se liberan los bloqueos de inmediato
             raise e
+
+    def update_order_status(self, order_id: int, status_str: str) -> Order:
+        """
+        Actualiza el estado de la orden (completed, cancelled) y realiza la
+        consiguiente afectación física al inventario (liberar o confirmar stock).
+        """
+        try:
+            # 1. Bloquear y leer la orden
+            order = self.db.query(Order).filter(Order.id == order_id).with_for_update().first()
+            if not order:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No se encontró la orden con ID {order_id}."
+                )
+
+            # Evitar cambios si ya está terminada
+            if order.status in [OrderStatus.COMPLETED, OrderStatus.CANCELLED]:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"No se puede modificar una orden que ya está en estado {order.status}."
+                )
+
+            order.status = OrderStatus(status_str)
+
+            # 2. Si el nuevo estado es COMPLETED, descontamos el stock físico definitivo
+            if order.status == OrderStatus.COMPLETED:
+                for item in order.items:
+                    inventory = (
+                        self.db.query(Inventory)
+                        .filter(Inventory.product_id == item.product_id)
+                        .with_for_update()
+                        .first()
+                    )
+                    if inventory:
+                        # Restar del total físico y de la reserva
+                        inventory.quantity -= item.quantity
+                        inventory.reserved_quantity -= item.quantity
+
+            # 3. Si el nuevo estado es CANCELLED, liberamos la reserva
+            elif order.status == OrderStatus.CANCELLED:
+                for item in order.items:
+                    inventory = (
+                        self.db.query(Inventory)
+                        .filter(Inventory.product_id == item.product_id)
+                        .with_for_update()
+                        .first()
+                    )
+                    if inventory:
+                        # Solo liberar de la reserva
+                        inventory.reserved_quantity -= item.quantity
+
+            self.db.commit()
+            self.db.refresh(order)
+            return order
+
+        except Exception as e:
+            self.db.rollback()
+            raise e
