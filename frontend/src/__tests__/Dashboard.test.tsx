@@ -180,7 +180,7 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
 
   // ─── SHOPPING CART ACCESSIBILITY ───
 
-  it('renders "Carrito Comercial" and product checkout button for user role', () => {
+  it('renders "Solicitud de Stock" and product checkout button for user role', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 1, email: 'user@stocknow.com', role: 'user', is_active: true },
       token: 'test-token',
@@ -192,11 +192,11 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
     });
 
     const { queryByText, queryAllByText } = renderWithClient(<Dashboard />);
-    expect(queryByText('Carrito Comercial')).not.toBeNull();
+    expect(queryByText('Solicitud de Stock')).not.toBeNull();
     expect(queryAllByText('Añadir').length).toBeGreaterThan(0);
   });
 
-  it('does not render "Carrito Comercial" or product checkout button for operator role', () => {
+  it('does not render "Solicitud de Stock" or product checkout button for operator role', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 4, email: 'operator@stocknow.com', role: 'operator', is_active: true },
       token: 'test-token',
@@ -208,7 +208,7 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
     });
 
     const { queryByText, queryByText: queryAñadir } = renderWithClient(<Dashboard />);
-    expect(queryByText('Carrito Comercial')).toBeNull();
+    expect(queryByText('Solicitud de Stock')).toBeNull();
     expect(queryAñadir('Añadir')).toBeNull();
   });
 

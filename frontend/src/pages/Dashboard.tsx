@@ -175,7 +175,7 @@ export const Dashboard: React.FC = () => {
       case 'manager':
         return <Badge variant="warning">Gestor</Badge>;
       case 'user':
-        return <Badge variant="info">Cliente</Badge>;
+        return <Badge variant="info">Sucursal</Badge>;
       case 'operator':
       default:
         return <Badge variant="success">Operador</Badge>;
@@ -231,7 +231,7 @@ export const Dashboard: React.FC = () => {
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-100 via-zinc-300 to-emerald-400 bg-clip-text text-transparent">
               StockNow Enterprise
             </h1>
-            {user?.role === 'user' && <Badge variant="info">Client App</Badge>}
+            {user?.role === 'user' && <Badge variant="info">Sucursal App</Badge>}
           </div>
           <p className="text-xs sm:text-sm text-zinc-500 mt-1">
             Sistema de inventario inteligente en tiempo real y transacciones concurrentes
@@ -261,7 +261,7 @@ export const Dashboard: React.FC = () => {
               className="relative flex items-center gap-2 rounded-xl bg-zinc-900 border border-zinc-800 px-4 py-2 text-sm font-semibold text-zinc-100 transition-all hover:bg-zinc-850 hover:border-zinc-700 cursor-pointer shadow-md"
             >
               <ShoppingCart size={16} className="text-emerald-400" /> 
-              <span className="hidden sm:inline">Carrito Comercial</span>
+              <span className="hidden sm:inline">Solicitud de Stock</span>
               {totalItemsInCart > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-[10px] text-zinc-950 rounded-full h-4.5 w-4.5 flex items-center justify-center font-bold shadow-md shadow-emerald-500/25">
                   {totalItemsInCart}
@@ -331,7 +331,7 @@ export const Dashboard: React.FC = () => {
 
           <Card className="flex items-center justify-between p-5 hover:border-zinc-750">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">Ventas Facturadas</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">Valor Despachado</p>
               <h3 className="mt-1 text-2xl font-bold text-emerald-400 font-mono">${Number(stats.total_sales).toFixed(2)}</h3>
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900/80 text-emerald-400 border border-zinc-800/80">
@@ -652,9 +652,9 @@ export const Dashboard: React.FC = () => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-zinc-800/80 bg-zinc-950/60 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                      <th className="p-4 pl-6">ID Orden</th>
-                      <th className="p-4">Usuario</th>
-                      <th className="p-4">Monto Total</th>
+                      <th className="p-4 pl-6">ID Solicitud</th>
+                      <th className="p-4">Solicitante</th>
+                      <th className="p-4">Valor Estimado</th>
                       <th className="p-4">Fecha Creación</th>
                       <th className="p-4">Items y Cantidades</th>
                       <th className="p-4">Estado</th>
@@ -814,7 +814,7 @@ export const Dashboard: React.FC = () => {
                             disabled={user?.email === u.email}
                             className="rounded-lg border border-zinc-800 bg-zinc-900 py-1 px-2 text-[11px] text-zinc-150 focus:outline-hidden focus:ring-1 focus:ring-emerald-500 disabled:opacity-40 cursor-pointer"
                           >
-                            <option value="user">User</option>
+                            <option value="user">Sucursal</option>
                             <option value="operator">Operator</option>
                             <option value="manager">Manager</option>
                             <option value="admin">Admin</option>
@@ -862,7 +862,7 @@ export const Dashboard: React.FC = () => {
                           disabled={user?.email === u.email}
                           className="rounded-lg border border-zinc-800 bg-zinc-900 py-1 px-2 text-[10px] text-zinc-150 focus:outline-hidden disabled:opacity-40 cursor-pointer"
                         >
-                          <option value="user">User</option>
+                          <option value="user">Sucursal</option>
                           <option value="operator">Operator</option>
                           <option value="manager">Manager</option>
                           <option value="admin">Admin</option>

@@ -33,7 +33,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({ isOpen, onClose, cartItems
 
     mutate(payload, {
       onSuccess: () => {
-        alert("¡Orden procesada con éxito en PostgreSQL! El stock ha sido reservado. 🚀");
+        alert("¡Requisición de stock enviada con éxito! El stock ha sido reservado en bodega. 🚀");
         onClearCart();
         onClose();
       }
@@ -65,7 +65,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({ isOpen, onClose, cartItems
             <div className="flex items-center justify-between border-b border-zinc-800 pb-4 mb-4">
               <div className="flex items-center gap-2">
                 <ShoppingCart className="text-emerald-400" size={22} />
-                <h2 className="text-xl font-bold text-zinc-100">Carrito de Órdenes</h2>
+                <h2 className="text-xl font-bold text-zinc-100">Solicitud de Stock (Requisición)</h2>
               </div>
               <button
                 onClick={onClose}
@@ -86,7 +86,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({ isOpen, onClose, cartItems
               {cartItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center pt-20 text-center text-zinc-500">
                   <ShoppingCart size={40} className="stroke-1 mb-2 opacity-50" />
-                  <p className="text-sm">El carrito está vacío.</p>
+                  <p className="text-sm">La solicitud de stock está vacía.</p>
                 </div>
               ) : (
                 cartItems.map(item => (
@@ -120,7 +120,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({ isOpen, onClose, cartItems
             {cartItems.length > 0 && (
               <div className="border-t border-zinc-800 pt-4 mt-4 space-y-4">
                 <div className="flex justify-between items-center text-sm px-1">
-                  <span className="text-zinc-400">Total:</span>
+                  <span className="text-zinc-400">Valor Estimado:</span>
                   <span className="text-xl font-bold text-zinc-100">${total.toFixed(2)}</span>
                 </div>
                 <Button
@@ -129,7 +129,7 @@ export const CartPanel: React.FC<CartPanelProps> = ({ isOpen, onClose, cartItems
                   className="w-full py-3"
                   variant="primary"
                 >
-                  Confirmar Orden
+                  Confirmar Solicitud
                 </Button>
               </div>
             )}
