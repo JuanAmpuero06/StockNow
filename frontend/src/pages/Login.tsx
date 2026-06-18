@@ -12,7 +12,7 @@ export const Login: React.FC = () => {
   const [isLoginView, setIsLoginView] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'admin' | 'manager' | 'operator' | 'user'>('user');
+  const [role, setRole] = useState<'admin' | 'manager' | 'operator' | 'user'>('operator');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -184,7 +184,6 @@ export const Login: React.FC = () => {
                           onChange={(e) => setRole(e.target.value as any)}
                           className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 py-3 pl-10 pr-4 text-sm text-zinc-100 transition-all focus:border-emerald-500 focus:bg-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-500 appearance-none cursor-pointer"
                         >
-                          <option value="user">Sucursal / Solicitante Interno (Requisiciones)</option>
                           <option value="operator">Operador (Ajustes y Despachos)</option>
                           <option value="manager">Gestor de Catálogo (CRUD Completo)</option>
                           <option value="admin">Administrador (Acceso Total)</option>

@@ -180,7 +180,22 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
 
   // ─── SHOPPING CART ACCESSIBILITY ───
 
-  it('renders "Solicitud de Stock" and product checkout button for user role', () => {
+  it('renders "Solicitud de Stock" button in table for manager role', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: 3, email: 'manager@stocknow.com', role: 'manager', is_active: true },
+      token: 'test-token',
+      isAuthenticated: true,
+      isLoading: false,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    const { queryAllByTitle } = renderWithClient(<Dashboard />);
+    expect(queryAllByTitle('Solicitud de Stock').length).toBeGreaterThan(0);
+  });
+
+  it('does not render "Solicitud de Stock" button for user role', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 1, email: 'user@stocknow.com', role: 'user', is_active: true },
       token: 'test-token',
@@ -191,12 +206,11 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
       logout: vi.fn(),
     });
 
-    const { queryByText, queryAllByText } = renderWithClient(<Dashboard />);
-    expect(queryByText('Solicitud de Stock')).not.toBeNull();
-    expect(queryAllByText('Añadir').length).toBeGreaterThan(0);
+    const { queryByTitle } = renderWithClient(<Dashboard />);
+    expect(queryByTitle('Solicitud de Stock')).toBeNull();
   });
 
-  it('does not render "Solicitud de Stock" or product checkout button for operator role', () => {
+  it('does not render "Solicitud de Stock" button for operator role', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 4, email: 'operator@stocknow.com', role: 'operator', is_active: true },
       token: 'test-token',
@@ -207,16 +221,30 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
       logout: vi.fn(),
     });
 
-    const { queryByText, queryByText: queryAñadir } = renderWithClient(<Dashboard />);
-    expect(queryByText('Solicitud de Stock')).toBeNull();
-    expect(queryAñadir('Añadir')).toBeNull();
+    const { queryByTitle } = renderWithClient(<Dashboard />);
+    expect(queryByTitle('Solicitud de Stock')).toBeNull();
   });
 
   // ─── WAREHOUSE ADJUSTMENT ACCESSIBILITY ───
 
-  it('renders "Ajuste de inventario físico" button for operator role', () => {
+  it('does not render "Ajuste de inventario físico" button for operator role', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 4, email: 'operator@stocknow.com', role: 'operator', is_active: true },
+      token: 'test-token',
+      isAuthenticated: true,
+      isLoading: false,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    const { queryByTitle } = renderWithClient(<Dashboard />);
+    expect(queryByTitle('Ajuste de inventario físico')).toBeNull();
+  });
+
+  it('renders "Ajuste de inventario físico" button for admin role', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: 2, email: 'admin@stocknow.com', role: 'admin', is_active: true },
       token: 'test-token',
       isAuthenticated: true,
       isLoading: false,

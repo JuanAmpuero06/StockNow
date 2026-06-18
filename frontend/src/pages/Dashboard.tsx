@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useProducts } from '../hooks/useProducts';
 import { useDeleteProduct } from '../hooks/useDeleteProduct';
 import { ProductModal } from '../components/ProductModal';
-import { CartPanel } from '../components/CartPanel';
 import { useAuth } from '../hooks/useAuth';
 import { useWebSocketSync } from '../hooks/useWebSocketSync';
 import { useOrders, useUpdateOrderStatus } from '../hooks/useOrders';
@@ -10,8 +9,9 @@ import { useAdjustStock } from '../hooks/useAdjustStock';
 import { useUsers, useUpdateUserRole, useToggleUserActive } from '../hooks/useUsers';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { useAuditLogs } from '../hooks/useAuditLogs';
+import { useCreateOrder } from '../hooks/useCreateOrder';
 import { 
-  Plus, Pencil, Trash2, ShoppingCart, ShoppingBag, LogOut, 
+  Plus, Pencil, Trash2, ShoppingCart, LogOut, 
   PackagePlus, ClipboardList, Users, Package, AlertTriangle, 
   CheckCircle2, XCircle, History, Search, RefreshCw
 } from 'lucide-react';
@@ -22,11 +22,6 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
-
-interface CartItem {
-  product: Product;
-  quantity: number;
-}
 
 export const Dashboard: React.FC = () => {
   const { user, token, logout } = useAuth();
@@ -47,11 +42,7 @@ export const Dashboard: React.FC = () => {
 
   // Modal & Panel state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  
-  // Shopping Cart state
-  const [cart, setCart] = useState<CartItem[]>([]);
 
   // Adjustment state
   const [adjustModalOpen, setAdjustModalOpen] = useState(false);
@@ -59,6 +50,12 @@ export const Dashboard: React.FC = () => {
   const [adjustQtyInput, setAdjustQtyInput] = useState<string>('0');
   const [adjustReasonInput, setAdjustReasonInput] = useState<string>('');
   const adjustStockMutation = useAdjustStock();
+
+  // Stock Request state
+  const [requestStockModalOpen, setRequestStockModalOpen] = useState(false);
+  const [productToRequest, setProductToRequest] = useState<Product | null>(null);
+  const [requestQtyInput, setRequestQtyInput] = useState<string>('1');
+  const createOrderMutation = useCreateOrder();
 
   // Orders, Users & Audit logs hooks
   const { data: orders, isLoading: ordersLoading } = useOrders();
@@ -112,28 +109,39 @@ export const Dashboard: React.FC = () => {
     );
   };
 
-  const handleAddToCart = (product: Product) => {
-    setCart(prevCart => {
-      const existing = prevCart.find(item => item.product.id === product.id);
-      const currentQtyInCart = existing ? existing.quantity : 0;
-      const available = product.inventory?.available_stock ?? 0;
-
-      if (currentQtyInCart >= available) {
-        alert(`No puedes añadir más unidades de ${product.name}. Stock máximo disponible alcanzado.`);
-        return prevCart;
-      }
-
-      if (existing) {
-        return prevCart.map(item => 
-          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      }
-      return [...prevCart, { product, quantity: 1 }];
-    });
+  const handleOpenRequestStock = (product: Product) => {
+    setProductToRequest(product);
+    setRequestQtyInput('1');
+    setRequestStockModalOpen(true);
   };
 
-  const handleRemoveFromCart = (productId: number) => {
-    setCart(prevCart => prevCart.filter(item => item.product.id !== productId));
+  const handleRequestStockSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!productToRequest) return;
+    const qty = parseInt(requestQtyInput, 10);
+    if (isNaN(qty) || qty <= 0) {
+      alert("Por favor, ingresa una cantidad válida mayor a 0.");
+      return;
+    }
+
+    const payload = {
+      items: [
+        {
+          product_id: productToRequest.id,
+          quantity: qty
+        }
+      ]
+    };
+
+    createOrderMutation.mutate(payload, {
+      onSuccess: () => {
+        alert("¡Solicitud de stock enviada con éxito! El stock ha sido reservado. 🚀");
+        setRequestStockModalOpen(false);
+      },
+      onError: (err: any) => {
+        alert(err.response?.data?.detail || "Error al procesar la solicitud de stock.");
+      }
+    });
   };
 
   const handleOrderStatusChange = (orderId: number, status: 'completed' | 'cancelled' | 'processing') => {
@@ -154,19 +162,16 @@ export const Dashboard: React.FC = () => {
     toggleUserActiveMutation.mutate(userId);
   };
 
-  const totalItemsInCart = cart.reduce((sum, item) => sum + item.quantity, 0);
-
   const isOperator = user?.role === 'operator';
   const isManager = user?.role === 'manager';
   const isAdmin = user?.role === 'admin';
-  const isUser = user?.role === 'user';
 
   const canAddProducts = isAdmin || isManager;
   const canEditProducts = isAdmin || isManager;
   const canDeleteProducts = isAdmin;
-  const canAdjustStock = isAdmin || isManager || isOperator;
+  const canAdjustStock = isAdmin;
+  const canRequestStock = isAdmin || isManager;
   const canViewOrders = isAdmin || isManager || isOperator;
-  const canUseCart = isUser;
 
   const renderRoleBadge = (role?: string) => {
     switch (role) {
@@ -174,8 +179,6 @@ export const Dashboard: React.FC = () => {
         return <Badge variant="danger">Admin</Badge>;
       case 'manager':
         return <Badge variant="warning">Gestor</Badge>;
-      case 'user':
-        return <Badge variant="info">Sucursal</Badge>;
       case 'operator':
       default:
         return <Badge variant="success">Operador</Badge>;
@@ -231,7 +234,7 @@ export const Dashboard: React.FC = () => {
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-100 via-zinc-300 to-emerald-400 bg-clip-text text-transparent">
               StockNow Enterprise
             </h1>
-            {user?.role === 'user' && <Badge variant="info">Sucursal App</Badge>}
+            {/* Sucursal App is no longer displayed as a separate client role */}
           </div>
           <p className="text-xs sm:text-sm text-zinc-500 mt-1">
             Sistema de inventario inteligente en tiempo real y transacciones concurrentes
@@ -253,22 +256,6 @@ export const Dashboard: React.FC = () => {
               <LogOut size={16} />
             </button>
           </div>
-
-          {/* User Shopping Cart trigger button */}
-          {canUseCart && (
-            <button 
-              onClick={() => setIsCartOpen(true)}
-              className="relative flex items-center gap-2 rounded-xl bg-zinc-900 border border-zinc-800 px-4 py-2 text-sm font-semibold text-zinc-100 transition-all hover:bg-zinc-850 hover:border-zinc-700 cursor-pointer shadow-md"
-            >
-              <ShoppingCart size={16} className="text-emerald-400" /> 
-              <span className="hidden sm:inline">Solicitud de Stock</span>
-              {totalItemsInCart > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-emerald-500 text-[10px] text-zinc-950 rounded-full h-4.5 w-4.5 flex items-center justify-center font-bold shadow-md shadow-emerald-500/25">
-                  {totalItemsInCart}
-                </span>
-              )}
-            </button>
-          )}
           
           {/* Create Product Button */}
           {canAddProducts && activeTab === 'catalog' && (
@@ -284,12 +271,11 @@ export const Dashboard: React.FC = () => {
         </div>
       </header>
 
-      {/* KPI METRIC CARDS (Visible only to operator, manager, admin) */}
       {user?.role !== 'user' && stats && (
         <motion.div 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8"
+          className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} mb-8`}
         >
           <Card className="flex items-center justify-between p-5 hover:border-zinc-750">
             <div>
@@ -329,15 +315,17 @@ export const Dashboard: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="flex items-center justify-between p-5 hover:border-zinc-750">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">Valor Despachado</p>
-              <h3 className="mt-1 text-2xl font-bold text-emerald-400 font-mono">${Number(stats.total_sales).toFixed(2)}</h3>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900/80 text-emerald-400 border border-zinc-800/80">
-              <ShoppingCart size={18} />
-            </div>
-          </Card>
+          {isAdmin && (
+            <Card className="flex items-center justify-between p-5 hover:border-zinc-750">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">Valor Despachado</p>
+                <h3 className="mt-1 text-2xl font-bold text-emerald-400 font-mono">${Number(stats.total_sales).toFixed(2)}</h3>
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-900/80 text-emerald-400 border border-zinc-800/80">
+                <ShoppingCart size={18} />
+              </div>
+            </Card>
+          )}
         </motion.div>
       )}
 
@@ -367,8 +355,7 @@ export const Dashboard: React.FC = () => {
         )}
         {isAdmin && (
           <button 
-            onClick={() => setActiveTab('orders')}
-            onClickCapture={() => setActiveTab('users')}
+            onClick={() => setActiveTab('users')}
             className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'users' 
                 ? 'border-emerald-500 text-emerald-400 bg-emerald-500/2' 
@@ -378,7 +365,7 @@ export const Dashboard: React.FC = () => {
             <Users size={14} /> Gestión de Personal
           </button>
         )}
-        {user?.role !== 'user' && (
+        {(isAdmin || isManager) && (
           <button 
             onClick={() => setActiveTab('audit')}
             className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold tracking-wider uppercase border-b-2 transition-all cursor-pointer whitespace-nowrap ${
@@ -449,8 +436,7 @@ export const Dashboard: React.FC = () => {
                       <th className="p-4">Físico</th>
                       <th className="p-4">Reservado</th>
                       <th className="p-4">Disponible</th>
-                      <th className="p-4 text-center">Estados</th>
-                      {(canAdjustStock || canEditProducts || canDeleteProducts) && <th className="p-4 pr-6 text-center">Acción</th>}
+                      {(canAdjustStock || canRequestStock || canEditProducts || canDeleteProducts) && <th className="p-4 pr-6 text-center">Acción</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-850 text-xs">
@@ -478,33 +464,31 @@ export const Dashboard: React.FC = () => {
                             <td className="p-4 text-zinc-400 font-mono">{product.inventory?.quantity ?? 0}</td>
                             <td className="p-4 text-amber-500/80 font-mono">{product.inventory?.reserved_quantity ?? 0}</td>
                             <td className="p-4">
-                              <Badge variant={available > 0 ? 'success' : 'danger'}>
-                                {available} units
-                              </Badge>
-                            </td>
-                            <td className="p-4 text-center">
-                              <div className="flex items-center justify-center gap-2">
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                                <Badge variant={available > 0 ? 'success' : 'danger'}>
+                                  {available} units
+                                </Badge>
                                 {isLowStock && (
                                   <Badge variant="warning" className="animate-pulse">
                                     <AlertTriangle size={10} className="mr-1" /> Stock Bajo
                                   </Badge>
                                 )}
-                                {canUseCart && (
-                                  <button 
-                                    onClick={() => handleAddToCart(product)}
-                                    disabled={available <= 0}
-                                    className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-zinc-900 hover:bg-emerald-500 hover:text-zinc-950 border border-zinc-800 hover:border-emerald-500 transition-all disabled:opacity-20 cursor-pointer"
-                                  >
-                                    <ShoppingBag size={11} /> Añadir
-                                  </button>
-                                )}
                               </div>
                             </td>
                             
                             {/* Management Actions */}
-                            {(canAdjustStock || canEditProducts || canDeleteProducts) && (
+                            {(canAdjustStock || canRequestStock || canEditProducts || canDeleteProducts) && (
                               <td className="p-4 pr-6 text-center">
                                 <div className="flex items-center justify-center gap-2.5">
+                                  {canRequestStock && (
+                                    <button 
+                                      onClick={() => handleOpenRequestStock(product)}
+                                      className="p-1.5 text-zinc-500 hover:text-blue-400 hover:bg-blue-500/5 rounded-lg transition-all cursor-pointer"
+                                      title="Solicitud de Stock"
+                                    >
+                                      <ClipboardList size={15} />
+                                    </button>
+                                  )}
                                   {canAdjustStock && (
                                     <button 
                                       onClick={() => handleOpenAdjust(product)}
@@ -586,13 +570,13 @@ export const Dashboard: React.FC = () => {
                           </div>
 
                           <div className="flex items-center gap-1">
-                            {canUseCart && (
+                            {canRequestStock && (
                               <button 
-                                onClick={() => handleAddToCart(product)}
-                                disabled={available <= 0}
-                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-zinc-900 hover:bg-emerald-500 hover:text-zinc-950 border border-zinc-800 hover:border-emerald-500 transition-all disabled:opacity-20 cursor-pointer"
+                                onClick={() => handleOpenRequestStock(product)}
+                                className="p-2 text-zinc-400 hover:text-blue-400 hover:bg-blue-500/5 rounded-xl transition-all border border-zinc-900 cursor-pointer"
+                                title="Solicitud de Stock"
                               >
-                                <ShoppingBag size={12} /> Añadir
+                                <ClipboardList size={13} />
                               </button>
                             )}
 
@@ -814,7 +798,6 @@ export const Dashboard: React.FC = () => {
                             disabled={user?.email === u.email}
                             className="rounded-lg border border-zinc-800 bg-zinc-900 py-1 px-2 text-[11px] text-zinc-150 focus:outline-hidden focus:ring-1 focus:ring-emerald-500 disabled:opacity-40 cursor-pointer"
                           >
-                            <option value="user">Sucursal</option>
                             <option value="operator">Operator</option>
                             <option value="manager">Manager</option>
                             <option value="admin">Admin</option>
@@ -862,7 +845,6 @@ export const Dashboard: React.FC = () => {
                           disabled={user?.email === u.email}
                           className="rounded-lg border border-zinc-800 bg-zinc-900 py-1 px-2 text-[10px] text-zinc-150 focus:outline-hidden disabled:opacity-40 cursor-pointer"
                         >
-                          <option value="user">Sucursal</option>
                           <option value="operator">Operator</option>
                           <option value="manager">Manager</option>
                           <option value="admin">Admin</option>
@@ -889,8 +871,7 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* TAB CONTENT 4: AUDIT LOGS */}
-      {activeTab === 'audit' && user?.role !== 'user' && (
+      {activeTab === 'audit' && (isAdmin || isManager) && (
         <div className="space-y-4">
           {auditLoading ? (
             <div className="text-center text-zinc-500 py-12">Cargando registros...</div>
@@ -964,16 +945,45 @@ export const Dashboard: React.FC = () => {
       {/* MODAL 1: PRODUCT CREATE / EDIT */}
       <ProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} productToEdit={selectedProduct} />
       
-      {/* MODAL 2: SHOPPING CART */}
-      {canUseCart && (
-        <CartPanel 
-          isOpen={isCartOpen} 
-          onClose={() => setIsCartOpen(false)} 
-          cartItems={cart}
-          onRemoveItem={handleRemoveFromCart}
-          onClearCart={() => setCart([])}
-        />
-      )}
+      {/* MODAL 2: SINGLE PRODUCT STOCK REQUEST */}
+      <Modal 
+        isOpen={requestStockModalOpen && !!productToRequest} 
+        onClose={() => setRequestStockModalOpen(false)}
+        title="Solicitud de Stock (Requisición)"
+        maxWidth="sm"
+      >
+        {productToRequest && (
+          <form onSubmit={handleRequestStockSubmit} className="space-y-4">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/20 p-3 text-xs space-y-1 text-zinc-400">
+              <p>Producto: <span className="font-semibold text-zinc-200">{productToRequest.name}</span></p>
+              <p>SKU: <span className="font-mono text-emerald-400">{productToRequest.sku}</span></p>
+              <p>Stock Físico Disponible: <span className="font-mono font-semibold text-zinc-200">{productToRequest.inventory?.available_stock ?? 0}</span></p>
+            </div>
+            
+            <Input 
+              label="Cantidad a solicitar"
+              type="number"
+              required
+              min="1"
+              placeholder="Ej. 10"
+              value={requestQtyInput}
+              onChange={e => setRequestQtyInput(e.target.value)}
+            />
+            <span className="text-[10px] text-zinc-500 block leading-normal">
+              Indica cuántas unidades de stock deseas solicitar para esta sucursal/bodega.
+            </span>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-zinc-900 mt-6">
+              <Button type="button" variant="ghost" onClick={() => setRequestStockModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" variant="primary" isLoading={createOrderMutation.isPending}>
+                Enviar Solicitud
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
 
       {/* MODAL 3: INVENTORY ADJUSTMENT / MERMAS */}
       <Modal 
