@@ -46,13 +46,15 @@ async def broadcast_product_deletion(product_id: int):
 def list_products(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1, le=100),
+    search: str = Query(None),
+    low_stock: bool = Query(False),
     repo: ProductRepository = Depends(get_product_repository),
     cache = Depends(get_redis)
 ):
     """
     Retorna el catálogo con estrategia Cache-Aside e hidratación estricta de Pydantic v2.
     """
-    cache_key = f"products:all:skip={skip}:limit={limit}"
+    cache_key = f"products:all:skip={skip}:limit={limit}:search={search or ''}:low_stock={low_stock}"
     
     # 1. Intentar leer de Redis (Cache Hit)
     cached_products = cache.get(cache_key)
@@ -60,7 +62,7 @@ def list_products(
         return products_adapter.validate_json(cached_products)
         
     # 2. Si no está en Redis (Cache Miss), ir a PostgreSQL
-    products = repo.list(skip=skip, limit=limit)
+    products = repo.list(skip=skip, limit=limit, search=search, low_stock=low_stock)
     
     # ⚡ CORRECCIÓN CRUCIAL: Convertir los modelos de SQLAlchemy a modelos de Pydantic
     # Aquí es donde 'from_attributes=True' hace su magia de forma explícita
@@ -104,6 +106,33 @@ def create_product(
     background_tasks.add_task(broadcast_product_change, "PRODUCT_CREATED", new_product.id)
         
     return new_product
+
+
+@router.get("/audit-logs", response_model=List[InventoryAuditLogResponse])
+def list_audit_logs(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db),
+    current_user = Depends(RoleChecker(["admin", "manager", "operator"]))
+):
+    """
+    Retorna el historial de auditoría de movimientos físicos de stock.
+    """
+    from app.models.domain import InventoryAuditLog
+    from sqlalchemy.orm import joinedload
+    
+    logs = (
+        db.query(InventoryAuditLog)
+        .options(
+            joinedload(InventoryAuditLog.product),
+            joinedload(InventoryAuditLog.user)
+        )
+        .order_by(InventoryAuditLog.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return logs
 
 
 @router.get("/{product_id}", response_model=ProductResponse)
@@ -171,6 +200,7 @@ from pydantic import BaseModel
 
 class StockAdjustmentPayload(BaseModel):
     quantity: int
+    reason: Optional[str] = Field("Ajuste manual de stock", max_length=255)
 
 @router.post("/{product_id}/adjust-stock", response_model=ProductResponse)
 def adjust_stock(
@@ -197,6 +227,15 @@ def adjust_stock(
     if db_product.inventory.quantity < 0:
         raise HTTPException(status_code=400, detail="El stock físico resultante no puede ser negativo.")
 
+    # 📝 REGISTRO DE AUDITORÍA
+    from app.models.domain import InventoryAuditLog
+    audit_log = InventoryAuditLog(
+        product_id=product_id,
+        user_id=current_user.id,
+        quantity_changed=payload.quantity,
+        reason=payload.reason or "Ajuste manual de stock"
+    )
+    repo.db.add(audit_log)
     repo.db.commit()
 
     # Invalida Redis

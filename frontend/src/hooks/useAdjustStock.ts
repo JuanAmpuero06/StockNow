@@ -6,8 +6,8 @@ export const useAdjustStock = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ productId, quantity }: { productId: number; quantity: number }) => {
-      const { data } = await apiClient.post<Product>(`/products/${productId}/adjust-stock`, { quantity });
+    mutationFn: async ({ productId, quantity, reason }: { productId: number; quantity: number; reason?: string }) => {
+      const { data } = await apiClient.post<Product>(`/products/${productId}/adjust-stock`, { quantity, reason });
       return data;
     },
     onSuccess: () => {

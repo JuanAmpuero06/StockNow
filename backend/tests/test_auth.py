@@ -38,27 +38,27 @@ def test_register_user():
     payload = {
         "email": "newuser@example.com",
         "password": "strongpassword",
-        "role": "operator"
+        "role": "user"
     }
     
     mock_user_repo.get_by_email.return_value = None
-    mock_created_user = User(id=2, email="newuser@example.com", role="operator", is_active=True)
+    mock_created_user = User(id=2, email="newuser@example.com", role="user", is_active=True)
     mock_user_repo.create_user.return_value = mock_created_user
     
     response = client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 201
     assert response.json()["email"] == "newuser@example.com"
-    assert response.json()["role"] == "operator"
+    assert response.json()["role"] == "user"
     mock_user_repo.create_user.assert_called_once()
 
 def test_register_user_already_exists():
     payload = {
         "email": "existing@example.com",
         "password": "strongpassword",
-        "role": "operator"
+        "role": "user"
     }
     
-    mock_user_repo.get_by_email.return_value = User(id=3, email="existing@example.com", role="operator", is_active=True)
+    mock_user_repo.get_by_email.return_value = User(id=3, email="existing@example.com", role="user", is_active=True)
     
     response = client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 400

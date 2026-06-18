@@ -74,3 +74,16 @@ class OrderItem(Base):
     unit_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     
     order: Mapped["Order"] = relationship(back_populates="items")
+
+class InventoryAuditLog(Base):
+    __tablename__ = "inventory_audit_logs"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    quantity_changed: Mapped[int] = mapped_column()
+    reason: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
+    
+    product: Mapped["Product"] = relationship()
+    user: Mapped["User"] = relationship()

@@ -85,7 +85,7 @@ class OrderRepository:
             self.db.rollback()  # 🚨 Si ALGO falla, se revierte todo y se liberan los bloqueos de inmediato
             raise e
 
-    def update_order_status(self, order_id: int, status_str: str) -> Order:
+    def update_order_status(self, order_id: int, status_str: str, updater_id: int) -> Order:
         """
         Actualiza el estado de la orden (completed, cancelled) y realiza la
         consiguiente afectación física al inventario (liberar o confirmar stock).
@@ -121,6 +121,16 @@ class OrderRepository:
                         # Restar del total físico y de la reserva
                         inventory.quantity -= item.quantity
                         inventory.reserved_quantity -= item.quantity
+
+                        # 📝 AUDITORÍA AUTOMÁTICA: Registrar despacho de orden
+                        from app.models.domain import InventoryAuditLog
+                        audit_log = InventoryAuditLog(
+                            product_id=item.product_id,
+                            user_id=updater_id,
+                            quantity_changed=-item.quantity,
+                            reason=f"Despacho automático de Orden #{order.id:04d}"
+                        )
+                        self.db.add(audit_log)
 
             # 3. Si el nuevo estado es CANCELLED, liberamos la reserva
             elif order.status == OrderStatus.CANCELLED:

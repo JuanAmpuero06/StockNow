@@ -25,15 +25,24 @@ class ProductRepository:
             .first()
         )
 
-    def list(self, skip: int = 0, limit: int = 100) -> List[Product]:
-        """Lista productos trayendo sus inventarios optimizados en una sola consulta SQL"""
-        return (
-            self.db.query(Product)
-            .options(joinedload(Product.inventory))  # ⚡ Eager Loading
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+    def list(self, skip: int = 0, limit: int = 100, search: Optional[str] = None, low_stock: bool = False) -> List[Product]:
+        """Lista productos filtrando opcionalmente por búsqueda o stock bajo, con carga ansiosa (joinedload)"""
+        query = self.db.query(Product).options(joinedload(Product.inventory))
+        
+        if search:
+            search_pattern = f"%{search}%"
+            query = query.filter(
+                (Product.sku.ilike(search_pattern)) |
+                (Product.name.ilike(search_pattern)) |
+                (Product.description.ilike(search_pattern))
+            )
+            
+        if low_stock:
+            query = query.join(Inventory).filter(
+                (Inventory.quantity - Inventory.reserved_quantity) <= Inventory.min_stock_threshold
+            )
+            
+        return query.offset(skip).limit(limit).all()
 
     def create(self, obj_in: ProductCreate) -> Product:
         db_product = Product(

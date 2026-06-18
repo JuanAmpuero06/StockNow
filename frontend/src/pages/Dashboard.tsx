@@ -8,10 +8,12 @@ import { useWebSocketSync } from '../hooks/useWebSocketSync';
 import { useOrders, useUpdateOrderStatus } from '../hooks/useOrders';
 import { useAdjustStock } from '../hooks/useAdjustStock';
 import { useUsers, useUpdateUserRole, useToggleUserActive } from '../hooks/useUsers';
+import { useDashboardStats } from '../hooks/useDashboardStats';
+import { useAuditLogs } from '../hooks/useAuditLogs';
 import { 
   Plus, Pencil, Trash2, ShoppingCart, ShoppingBag, LogOut, 
   PackagePlus, ClipboardList, Users, Package, AlertTriangle, 
-  CheckCircle2, XCircle, UserCheck, UserMinus 
+  CheckCircle2, XCircle, UserCheck, UserMinus, History
 } from 'lucide-react';
 import type { Product } from '../types/product';
 
@@ -26,11 +28,16 @@ export const Dashboard: React.FC = () => {
   // Activar sincronización en tiempo real mediante WebSockets
   useWebSocketSync(token);
   
-  const { data: products, isLoading, isError, error } = useProducts(0, 10);
+  // Estados para búsqueda y filtrado de catálogo
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  
+  const { data: products, isLoading, isError, error } = useProducts(0, 100, searchTerm, showLowStockOnly);
+  const { data: stats } = useDashboardStats(user?.role !== 'user');
   const deleteMutation = useDeleteProduct();
   
   // Tab activa
-  const [activeTab, setActiveTab] = useState<'catalog' | 'orders' | 'users'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'orders' | 'users' | 'audit'>('catalog');
 
   // Estados de Control de Modales y Paneles
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -44,15 +51,18 @@ export const Dashboard: React.FC = () => {
   const [adjustModalOpen, setAdjustModalOpen] = useState(false);
   const [productToAdjust, setProductToAdjust] = useState<Product | null>(null);
   const [adjustQtyInput, setAdjustQtyInput] = useState<string>('0');
+  const [adjustReasonInput, setAdjustReasonInput] = useState<string>('');
   const adjustStockMutation = useAdjustStock();
 
-  // Hooks para Órdenes y Usuarios
+  // Hooks para Órdenes, Usuarios y Auditoría
   const { data: orders, isLoading: ordersLoading } = useOrders();
   const updateStatusMutation = useUpdateOrderStatus();
   
   const { data: usersList, isLoading: usersLoading } = useUsers();
   const updateUserRoleMutation = useUpdateUserRole();
   const toggleUserActiveMutation = useToggleUserActive();
+
+  const { data: auditLogs, isLoading: auditLoading } = useAuditLogs(activeTab === 'audit');
 
   const handleOpenCreate = () => {
     setSelectedProduct(null);
@@ -73,6 +83,7 @@ export const Dashboard: React.FC = () => {
   const handleOpenAdjust = (product: Product) => {
     setProductToAdjust(product);
     setAdjustQtyInput('0');
+    setAdjustReasonInput('');
     setAdjustModalOpen(true);
   };
 
@@ -83,7 +94,7 @@ export const Dashboard: React.FC = () => {
     if (isNaN(qty)) return;
 
     adjustStockMutation.mutate(
-      { productId: productToAdjust.id, quantity: qty },
+      { productId: productToAdjust.id, quantity: qty, reason: adjustReasonInput },
       {
         onSuccess: () => {
           setAdjustModalOpen(false);
@@ -228,6 +239,57 @@ export const Dashboard: React.FC = () => {
         </div>
       </header>
 
+      {/* SECCIÓN DE METRICAS CLAVE (KPIs) - SOLO OPERATIVOS / ADMINS */}
+      {user?.role !== 'user' && stats && (
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+          <div className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-950 p-6 shadow-md transition-all hover:border-slate-700/80">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Productos</p>
+              <h3 className="mt-1 text-2xl font-black text-white">{stats.total_products}</h3>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+              <Package size={22} />
+            </div>
+          </div>
+
+          <div className={`flex items-center justify-between rounded-2xl border p-6 shadow-md transition-all ${
+            stats.low_stock_count > 0 
+              ? 'border-amber-500/30 bg-amber-500/5 hover:border-amber-500/50' 
+              : 'border-slate-800 bg-slate-950 hover:border-slate-700/80'
+          }`}>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Stock Bajo Alertas</p>
+              <h3 className={`mt-1 text-2xl font-black ${stats.low_stock_count > 0 ? 'text-amber-400' : 'text-white'}`}>{stats.low_stock_count}</h3>
+            </div>
+            <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+              stats.low_stock_count > 0 ? 'bg-amber-500/10 text-amber-400 animate-pulse' : 'bg-slate-800 text-slate-400'
+            }`}>
+              <AlertTriangle size={22} />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-950 p-6 shadow-md transition-all hover:border-slate-700/80">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Órdenes Pendientes</p>
+              <h3 className="mt-1 text-2xl font-black text-white">{stats.pending_orders}</h3>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
+              <ClipboardList size={22} />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between rounded-2xl border border-slate-800 bg-slate-950 p-6 shadow-md transition-all hover:border-slate-700/80">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Ventas Totales (Despachadas)</p>
+              <h3 className="mt-1 text-2xl font-black text-emerald-400">${Number(stats.total_sales).toFixed(2)}</h3>
+            </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
+              <ShoppingCart size={22} />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabs de Navegación de Roles */}
       <div className="flex border-b border-slate-800 mb-6 gap-2">
         <button 
@@ -252,11 +314,52 @@ export const Dashboard: React.FC = () => {
             <Users size={16} /> Control de Usuarios
           </button>
         )}
+        {user?.role !== 'user' && (
+          <button 
+            onClick={() => setActiveTab('audit')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all cursor-pointer ${activeTab === 'audit' ? 'border-emerald-500 text-emerald-400 bg-slate-800/10' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+          >
+            <History size={16} /> Auditoría de Stock
+          </button>
+        )}
       </div>
 
       {/* TAB CONTENT 1: CATALOG */}
       {activeTab === 'catalog' && (
-        <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-xl animate-fadeIn">
+        <div className="space-y-4 animate-fadeIn">
+          {/* Panel de filtros y búsqueda */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-xl border border-slate-800 bg-slate-950/60 p-4 backdrop-blur-xs">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Buscar por SKU, nombre o descripción..."
+                className="w-full rounded-lg border border-slate-800 bg-slate-900 py-2 pl-3 pr-10 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-hidden"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 hover:text-slate-300 font-bold cursor-pointer"
+                >
+                  Limpiar
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-300 font-semibold select-none">
+                <input
+                  type="checkbox"
+                  checked={showLowStockOnly}
+                  onChange={(e) => setShowLowStockOnly(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-800 bg-slate-900 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                />
+                Solo Alertas de Stock Bajo
+              </label>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-xl">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-800 bg-slate-900/50 text-xs font-semibold uppercase text-slate-400">
@@ -343,7 +446,8 @@ export const Dashboard: React.FC = () => {
             </tbody>
           </table>
         </div>
-      )}
+      </div>
+    )}
 
       {/* TAB CONTENT 2: ORDER QUEUE */}
       {activeTab === 'orders' && (
@@ -492,6 +596,52 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
+      {/* TAB CONTENT 4: AUDIT LOGS */}
+      {activeTab === 'audit' && user?.role !== 'user' && (
+        <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-xl animate-fadeIn">
+          {auditLoading ? (
+            <div className="text-center text-slate-400 py-10">Cargando historial de auditoría...</div>
+          ) : !auditLogs || auditLogs.length === 0 ? (
+            <div className="text-center text-slate-500 py-10 bg-slate-950 rounded-xl border border-slate-800">No hay registros de auditoría de inventario.</div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-800 bg-slate-900/50 text-xs font-semibold uppercase text-slate-400">
+                  <th className="p-4">Fecha / Hora</th>
+                  <th className="p-4">Producto</th>
+                  <th className="p-4">SKU</th>
+                  <th className="p-4">Usuario</th>
+                  <th className="p-4 text-center">Cantidad</th>
+                  <th className="p-4">Motivo / Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 text-sm">
+                {auditLogs.map((log) => (
+                  <tr key={log.id} className="transition-colors hover:bg-slate-900/30">
+                    <td className="p-4 text-slate-400 font-mono text-xs">
+                      {new Date(log.created_at).toLocaleString()}
+                    </td>
+                    <td className="p-4 text-white font-semibold">{log.product?.name || `ID: ${log.product_id}`}</td>
+                    <td className="p-4 text-emerald-400 font-mono">{log.product?.sku || 'N/A'}</td>
+                    <td className="p-4 text-slate-300">{log.user?.email || `ID: ${log.user_id}`}</td>
+                    <td className="p-4 text-center">
+                      <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-bold ${
+                        log.quantity_changed > 0 
+                          ? 'bg-emerald-500/10 text-emerald-400' 
+                          : 'bg-rose-500/10 text-rose-400'
+                      }`}>
+                        {log.quantity_changed > 0 ? `+${log.quantity_changed}` : log.quantity_changed}
+                      </span>
+                    </td>
+                    <td className="p-4 text-slate-300">{log.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
       {/* MODAL 1: PRODUCT CREATE / EDIT */}
       <ProductModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} productToEdit={selectedProduct} />
       
@@ -536,6 +686,18 @@ export const Dashboard: React.FC = () => {
                 <span className="text-[10px] text-slate-500 block mt-1">
                   Usa valores positivos (+) para ingresos/reabastecimientos y negativos (-) para mermas o diferencias físicas en bodega.
                 </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase text-slate-400 mb-1.5">Motivo del Ajuste</label>
+                <input 
+                  type="text"
+                  required
+                  placeholder="Ej. Ingreso de proveedor, Merma por daño"
+                  className="w-full rounded-lg border border-slate-800 bg-slate-900 p-2.5 text-sm text-white focus:border-emerald-500 focus:outline-hidden"
+                  value={adjustReasonInput}
+                  onChange={e => setAdjustReasonInput(e.target.value)}
+                />
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">

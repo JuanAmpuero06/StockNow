@@ -62,6 +62,7 @@ def login_user(
 
 from app.api.v1.deps import get_current_user
 from app.models.domain import User
+from app.core.security import create_access_token
 
 @router.get("/me", response_model=UserResponse)
 def read_users_me(current_user: User = Depends(get_current_user)):
@@ -103,8 +104,8 @@ def update_user_role(
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
     
-    if payload.role not in ["admin", "manager", "operator"]:
-        raise HTTPException(status_code=400, detail="Rol inválido. Debe ser 'admin', 'manager' o 'operator'.")
+    if payload.role not in ["admin", "manager", "operator", "user"]:
+        raise HTTPException(status_code=400, detail="Rol inválido. Debe ser 'admin', 'manager', 'operator' o 'user'.")
         
     user.role = payload.role
     db.commit()

@@ -10,7 +10,7 @@ export const useWebSocketSync = (token: string | null) => {
     if (!token) return;
 
     // Conexión dinámica al host donde corre la API (puerto 8000 en docker-compose)
-    const wsUrl = `ws://localhost:8000/api/v1/ws`;
+    const wsUrl = `ws://localhost:8000/api/v1/ws?token=${encodeURIComponent(token)}`;
     let ws = new WebSocket(wsUrl);
     let reconnectTimeout: number | undefined;
 
@@ -92,6 +92,9 @@ export const useWebSocketSync = (token: string | null) => {
             default:
               break;
           }
+          // Sincronizar en tiempo real las estadísticas métricas del panel y la auditoría
+          queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+          queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
         } catch (err) {
           console.error('🚀 WebSocket: Error al procesar mensaje recibido:', err);
         }

@@ -35,3 +35,29 @@ class ProductUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
     price: Optional[Decimal] = Field(None, gt=0, max_digits=10, decimal_places=2)
+
+from datetime import datetime
+
+class UserMiniResponse(BaseModel):
+    id: int
+    email: str
+    role: str
+    model_config = ConfigDict(from_attributes=True)
+
+class ProductMiniResponse(BaseModel):
+    id: int
+    sku: str
+    name: str
+    model_config = ConfigDict(from_attributes=True)
+
+class InventoryAuditLogResponse(BaseModel):
+    id: int
+    product_id: int
+    user_id: int
+    quantity_changed: int
+    reason: str
+    created_at: datetime
+    product: ProductMiniResponse
+    user: UserMiniResponse
+
+    model_config = ConfigDict(from_attributes=True)

@@ -8,7 +8,7 @@ export const Login: React.FC = () => {
   const [isLoginView, setIsLoginView] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'admin' | 'manager' | 'operator' | 'user'>('operator');
+  const [role, setRole] = useState<'admin' | 'manager' | 'operator' | 'user'>('user');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -138,10 +138,10 @@ export const Login: React.FC = () => {
                   onChange={(e) => setRole(e.target.value as 'admin' | 'manager' | 'operator' | 'user')}
                   className="w-full rounded-xl border border-slate-800 bg-slate-900/50 py-3 pl-10 pr-4 text-sm text-white transition-all focus:border-emerald-500 focus:bg-slate-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-500 appearance-none"
                 >
-                  <option value="operator">Operator (Venta y visualización)</option>
-                  <option value="manager">Manager (Gestión de productos)</option>
-                  <option value="user">User (Crear productos)</option>
-                  <option value="admin">Admin (Acceso total)</option>
+                  <option value="user">User (Cliente - Venta y Carrito)</option>
+                  <option value="operator">Operator (Personal de Bodega - Ajustes y Despachos)</option>
+                  <option value="manager">Manager (Gestor de Inventario - CRUD Catálogo)</option>
+                  <option value="admin">Admin (Administrador - Acceso total)</option>
                 </select>
               </div>
             </div>

@@ -7,7 +7,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Esquema para el registro: exige contraseña en texto plano"""
     password: str = Field(..., min_length=6, description="La contraseña debe tener al menos 6 caracteres")
-    role: Optional[str] = "operator"
+    role: Optional[str] = "user"
 
 class UserResponse(UserBase):
     """Esquema de salida seguro: JAMÁS devuelve contraseñas o hashes"""

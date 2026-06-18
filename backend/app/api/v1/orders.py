@@ -119,7 +119,7 @@ def update_order_status(
     descuenta stock físico o libera la reserva respectivamente en Postgres,
     limpia caché en Redis y notifica los cambios en tiempo real vía WebSockets.
     """
-    order = repo.update_order_status(order_id=order_id, status_str=payload.status)
+    order = repo.update_order_status(order_id=order_id, status_str=payload.status, updater_id=current_user.id)
 
     # Invalida Redis
     keys_to_delete = cache.keys("products:all:*")
