@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { ShoppingBag, Lock, Mail, UserPlus, ArrowRight, Shield } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Card } from '../components/ui/Card';
+import { Input } from '../components/ui/Input';
+import { Button } from '../components/ui/Button';
 
 export const Login: React.FC = () => {
   const { login, register } = useAuth();
@@ -37,131 +41,171 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 font-sans text-slate-100 overflow-hidden">
-      {/* Decorative background glows */}
-      <div className="absolute top-1/4 left-1/4 -z-10 h-96 w-96 rounded-full bg-emerald-500/10 blur-[120px] animate-pulse"></div>
-      <div className="absolute bottom-1/4 right-1/4 -z-10 h-[400px] w-[400px] rounded-full bg-blue-500/10 blur-[130px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+    <div className="relative flex min-h-screen items-center justify-center bg-zinc-950 p-4 font-sans text-zinc-100 overflow-hidden">
+      {/* Dynamic Background Glows */}
+      <motion.div
+        animate={{
+          scale: [1, 1.2, 1],
+          opacity: [0.3, 0.5, 0.3],
+          x: [0, 50, 0],
+          y: [0, -30, 0]
+        }}
+        transition={{
+          duration: 10,
+          repeat: Infinity,
+          ease: 'easeInOut'
+        }}
+        className="absolute top-1/4 left-1/4 -z-10 h-80 w-80 rounded-full bg-emerald-500/10 blur-[100px]"
+      />
+      <motion.div
+        animate={{
+          scale: [1.2, 1, 1.2],
+          opacity: [0.2, 0.4, 0.2],
+          x: [0, -50, 0],
+          y: [0, 30, 0]
+        }}
+        transition={{
+          duration: 12,
+          repeat: Infinity,
+          ease: 'easeInOut',
+          delay: 2
+        }}
+        className="absolute bottom-1/4 right-1/4 -z-10 h-96 w-96 rounded-full bg-teal-500/10 blur-[120px]"
+      />
 
-      <div className="w-full max-w-md transform rounded-2xl border border-slate-800 bg-slate-950/60 p-8 shadow-2xl backdrop-blur-xl transition-all duration-300 hover:border-slate-700/60">
-        {/* Header Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-emerald-600 to-blue-500 text-white shadow-lg shadow-emerald-500/20 mb-4 animate-bounce">
-            <ShoppingBag size={28} />
-          </div>
-          <h2 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-emerald-400 bg-clip-text text-transparent">
-            StockNow Enterprise
-          </h2>
-          <p className="mt-2 text-sm text-slate-400 text-center">
-            {isLoginView 
-              ? 'Inicia sesión para gestionar inventarios y órdenes' 
-              : 'Crea una cuenta en el sistema de gestión'}
-          </p>
-        </div>
+      <div className="w-full max-w-md">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="border border-zinc-800/80 bg-zinc-900/30 backdrop-blur-xl p-8 shadow-2xl">
+            {/* Logo and Header */}
+            <div className="flex flex-col items-center mb-8">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-zinc-950 shadow-lg shadow-emerald-500/20 mb-4"
+              >
+                <ShoppingBag size={28} />
+              </motion.div>
+              <h2 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-zinc-100 via-zinc-300 to-emerald-400 bg-clip-text text-transparent">
+                StockNow Enterprise
+              </h2>
+              <p className="mt-2 text-sm text-zinc-400 text-center">
+                {isLoginView 
+                  ? 'Gestiona inventarios y órdenes con alto rendimiento' 
+                  : 'Crea una cuenta en el sistema de gestión'}
+              </p>
+            </div>
 
-        {/* Tabs for Login / Register */}
-        <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-900/80 p-1 mb-6 border border-slate-800/80">
-          <button
-            onClick={() => { setIsLoginView(true); setErrorMsg(null); }}
-            className={`flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg transition-all ${
-              isLoginView 
-                ? 'bg-slate-800 text-white shadow-sm' 
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/20'
-            }`}
-          >
-            <Lock size={15} /> Iniciar Sesión
-          </button>
-          <button
-            onClick={() => { setIsLoginView(false); setErrorMsg(null); }}
-            className={`flex items-center justify-center gap-2 py-2.5 text-sm font-semibold rounded-lg transition-all ${
-              !isLoginView 
-                ? 'bg-slate-800 text-white shadow-sm' 
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/20'
-            }`}
-          >
-            <UserPlus size={15} /> Registrarse
-          </button>
-        </div>
+            {/* Toggle View Tabs */}
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-zinc-950/80 p-1 mb-6 border border-zinc-850">
+              <button
+                type="button"
+                onClick={() => { setIsLoginView(true); setErrorMsg(null); }}
+                className={`flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-lg transition-all duration-300 cursor-pointer ${
+                  isLoginView 
+                    ? 'bg-zinc-800 text-zinc-100 shadow-xs' 
+                    : 'text-zinc-500 hover:text-zinc-350'
+                }`}
+              >
+                <Lock size={14} /> Iniciar Sesión
+              </button>
+              <button
+                type="button"
+                onClick={() => { setIsLoginView(false); setErrorMsg(null); }}
+                className={`flex items-center justify-center gap-2 py-2 text-xs font-semibold rounded-lg transition-all duration-300 cursor-pointer ${
+                  !isLoginView 
+                    ? 'bg-zinc-800 text-zinc-100 shadow-xs' 
+                    : 'text-zinc-500 hover:text-zinc-350'
+                }`}
+              >
+                <UserPlus size={14} /> Registrarse
+              </button>
+            </div>
 
-        {/* Error alert */}
-        {errorMsg && (
-          <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400 animate-shake">
-            {errorMsg}
-          </div>
-        )}
+            {/* Error Message */}
+            <AnimatePresence>
+              {errorMsg && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-4 overflow-hidden"
+                >
+                  <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-400">
+                    {errorMsg}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-        {/* Auth Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-              Correo Electrónico
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-              <input
+            {/* Auth Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                id="email-input"
+                label="Correo Electrónico"
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="correo@ejemplo.com"
-                className="w-full rounded-xl border border-slate-800 bg-slate-900/50 py-3 pl-10 pr-4 text-sm text-white placeholder-slate-500 transition-all focus:border-emerald-500 focus:bg-slate-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                placeholder="ejemplo@stocknow.com"
+                icon={<Mail size={16} />}
               />
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-              Contraseña
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-              <input
+              <Input
+                id="password-input"
+                label="Contraseña"
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-xl border border-slate-800 bg-slate-900/50 py-3 pl-10 pr-4 text-sm text-white placeholder-slate-500 transition-all focus:border-emerald-500 focus:bg-slate-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                icon={<Lock size={16} />}
               />
-            </div>
-          </div>
 
-          {/* Role selection for registration */}
-          {!isLoginView && (
-            <div className="animate-slideDown">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                Rol del Usuario
-              </label>
-              <div className="relative">
-                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as 'admin' | 'manager' | 'operator' | 'user')}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900/50 py-3 pl-10 pr-4 text-sm text-white transition-all focus:border-emerald-500 focus:bg-slate-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-500 appearance-none"
-                >
-                  <option value="user">User (Cliente - Venta y Carrito)</option>
-                  <option value="operator">Operator (Personal de Bodega - Ajustes y Despachos)</option>
-                  <option value="manager">Manager (Gestor de Inventario - CRUD Catálogo)</option>
-                  <option value="admin">Admin (Administrador - Acceso total)</option>
-                </select>
-              </div>
-            </div>
-          )}
+              {/* Role select for signup */}
+              <AnimatePresence>
+                {!isLoginView && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, y: -10 }}
+                    animate={{ opacity: 1, height: 'auto', y: 0 }}
+                    exit={{ opacity: 0, height: 0, y: -10 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pb-1">
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
+                        Rol del Usuario
+                      </label>
+                      <div className="relative">
+                        <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                        <select
+                          value={role}
+                          onChange={(e) => setRole(e.target.value as any)}
+                          className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 py-3 pl-10 pr-4 text-sm text-zinc-100 transition-all focus:border-emerald-500 focus:bg-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-500 appearance-none cursor-pointer"
+                        >
+                          <option value="user">Cliente (Venta y Carrito)</option>
+                          <option value="operator">Operador (Ajustes y Despachos)</option>
+                          <option value="manager">Gestor de Catálogo (CRUD Completo)</option>
+                          <option value="admin">Administrador (Acceso Total)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/10 transition-all duration-300 hover:from-emerald-500 hover:to-teal-400 hover:shadow-emerald-500/20 active:scale-98 disabled:opacity-50"
-          >
-            {loading ? (
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-            ) : (
-              <>
+              <Button
+                type="submit"
+                isLoading={loading}
+                className="w-full mt-2"
+                rightIcon={<ArrowRight size={16} />}
+              >
                 {isLoginView ? 'Ingresar al Dashboard' : 'Crear Cuenta'}
-                <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
-              </>
-            )}
-          </button>
-        </form>
+              </Button>
+            </form>
+          </Card>
+        </motion.div>
       </div>
     </div>
   );

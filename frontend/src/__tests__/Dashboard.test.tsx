@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, cleanup } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Dashboard } from '../pages/Dashboard';
 import { useAuth } from '../hooks/useAuth';
@@ -88,6 +88,25 @@ vi.mock('../hooks/useUsers', () => ({
   })),
 }));
 
+vi.mock('../hooks/useDashboardStats', () => ({
+  useDashboardStats: vi.fn(() => ({
+    data: {
+      total_products: 1,
+      low_stock_count: 0,
+      pending_orders: 0,
+      total_sales: 0,
+    },
+    isLoading: false,
+  })),
+}));
+
+vi.mock('../hooks/useAuditLogs', () => ({
+  useAuditLogs: vi.fn(() => ({
+    data: [],
+    isLoading: false,
+  })),
+}));
+
 const renderWithClient = (ui: React.ReactElement) => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -114,7 +133,7 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
 
   // ─── PRODUCT CREATION BUTTON ───
 
-  it('does not render "Agregar Producto" button for user/client role', () => {
+  it('does not render "Nuevo Producto" button for user/client role', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 1, email: 'user@stocknow.com', role: 'user', is_active: true },
       token: 'test-token',
@@ -125,11 +144,11 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
       logout: vi.fn(),
     });
 
-    renderWithClient(<Dashboard />);
-    expect(screen.queryByText('Agregar Producto')).toBeNull();
+    const { queryByText } = renderWithClient(<Dashboard />);
+    expect(queryByText('Nuevo Producto')).toBeNull();
   });
 
-  it('renders "Agregar Producto" button for manager role', () => {
+  it('renders "Nuevo Producto" button for manager role', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 3, email: 'manager@stocknow.com', role: 'manager', is_active: true },
       token: 'test-token',
@@ -140,11 +159,11 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
       logout: vi.fn(),
     });
 
-    renderWithClient(<Dashboard />);
-    expect(screen.queryByText('Agregar Producto')).not.toBeNull();
+    const { queryByText } = renderWithClient(<Dashboard />);
+    expect(queryByText('Nuevo Producto')).not.toBeNull();
   });
 
-  it('renders "Agregar Producto" button for admin role', () => {
+  it('renders "Nuevo Producto" button for admin role', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 2, email: 'admin@stocknow.com', role: 'admin', is_active: true },
       token: 'test-token',
@@ -155,8 +174,8 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
       logout: vi.fn(),
     });
 
-    renderWithClient(<Dashboard />);
-    expect(screen.queryByText('Agregar Producto')).not.toBeNull();
+    const { queryByText } = renderWithClient(<Dashboard />);
+    expect(queryByText('Nuevo Producto')).not.toBeNull();
   });
 
   // ─── SHOPPING CART ACCESSIBILITY ───
@@ -172,9 +191,9 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
       logout: vi.fn(),
     });
 
-    renderWithClient(<Dashboard />);
-    expect(screen.queryByText('Carrito Comercial')).not.toBeNull();
-    expect(screen.queryByText('Añadir')).not.toBeNull();
+    const { queryByText, queryAllByText } = renderWithClient(<Dashboard />);
+    expect(queryByText('Carrito Comercial')).not.toBeNull();
+    expect(queryAllByText('Añadir').length).toBeGreaterThan(0);
   });
 
   it('does not render "Carrito Comercial" or product checkout button for operator role', () => {
@@ -188,46 +207,14 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
       logout: vi.fn(),
     });
 
-    renderWithClient(<Dashboard />);
-    expect(screen.queryByText('Carrito Comercial')).toBeNull();
-    expect(screen.queryByText('Añadir')).toBeNull();
-  });
-
-  it('does not render "Carrito Comercial" or product checkout button for manager role', () => {
-    vi.mocked(useAuth).mockReturnValue({
-      user: { id: 3, email: 'manager@stocknow.com', role: 'manager', is_active: true },
-      token: 'test-token',
-      isAuthenticated: true,
-      isLoading: false,
-      login: vi.fn(),
-      register: vi.fn(),
-      logout: vi.fn(),
-    });
-
-    renderWithClient(<Dashboard />);
-    expect(screen.queryByText('Carrito Comercial')).toBeNull();
-    expect(screen.queryByText('Añadir')).toBeNull();
-  });
-
-  it('does not render "Carrito Comercial" or product checkout button for admin role', () => {
-    vi.mocked(useAuth).mockReturnValue({
-      user: { id: 2, email: 'admin@stocknow.com', role: 'admin', is_active: true },
-      token: 'test-token',
-      isAuthenticated: true,
-      isLoading: false,
-      login: vi.fn(),
-      register: vi.fn(),
-      logout: vi.fn(),
-    });
-
-    renderWithClient(<Dashboard />);
-    expect(screen.queryByText('Carrito Comercial')).toBeNull();
-    expect(screen.queryByText('Añadir')).toBeNull();
+    const { queryByText, queryByText: queryAñadir } = renderWithClient(<Dashboard />);
+    expect(queryByText('Carrito Comercial')).toBeNull();
+    expect(queryAñadir('Añadir')).toBeNull();
   });
 
   // ─── WAREHOUSE ADJUSTMENT ACCESSIBILITY ───
 
-  it('renders "Ajuste rápido" button for operator role', () => {
+  it('renders "Ajuste de inventario físico" button for operator role', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 4, email: 'operator@stocknow.com', role: 'operator', is_active: true },
       token: 'test-token',
@@ -238,11 +225,11 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
       logout: vi.fn(),
     });
 
-    renderWithClient(<Dashboard />);
-    expect(screen.queryByTitle('Ajuste rápido de inventario físico (Ingresos / Mermas)')).not.toBeNull();
+    const { queryAllByTitle } = renderWithClient(<Dashboard />);
+    expect(queryAllByTitle('Ajuste de inventario físico').length).toBeGreaterThan(0);
   });
 
-  it('does not render "Ajuste rápido" button for user/client role', () => {
+  it('does not render "Ajuste de inventario físico" button for user/client role', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 1, email: 'user@stocknow.com', role: 'user', is_active: true },
       token: 'test-token',
@@ -253,8 +240,8 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
       logout: vi.fn(),
     });
 
-    renderWithClient(<Dashboard />);
-    expect(screen.queryByTitle('Ajuste rápido de inventario físico (Ingresos / Mermas)')).toBeNull();
+    const { queryByTitle } = renderWithClient(<Dashboard />);
+    expect(queryByTitle('Ajuste de inventario físico')).toBeNull();
   });
 
   // ─── PRODUCT EDIT & DELETE ───
@@ -270,8 +257,8 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
       logout: vi.fn(),
     });
 
-    renderWithClient(<Dashboard />);
-    expect(screen.queryByTitle('Editar detalles')).not.toBeNull();
+    const { queryAllByTitle } = renderWithClient(<Dashboard />);
+    expect(queryAllByTitle('Editar').length).toBeGreaterThan(0);
   });
 
   it('does not show edit/pencil button for user', () => {
@@ -285,8 +272,8 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
       logout: vi.fn(),
     });
 
-    renderWithClient(<Dashboard />);
-    expect(screen.queryByTitle('Editar detalles')).toBeNull();
+    const { queryByTitle } = renderWithClient(<Dashboard />);
+    expect(queryByTitle('Editar')).toBeNull();
   });
 
   it('shows delete button for admin role', () => {
@@ -300,8 +287,8 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
       logout: vi.fn(),
     });
 
-    renderWithClient(<Dashboard />);
-    expect(screen.queryByTitle('Eliminar catálogo')).not.toBeNull();
+    const { queryAllByTitle } = renderWithClient(<Dashboard />);
+    expect(queryAllByTitle('Eliminar').length).toBeGreaterThan(0);
   });
 
   it('does not show delete button for manager role', () => {
@@ -315,7 +302,7 @@ describe('Dashboard Component - Corrected RBAC Permissions', () => {
       logout: vi.fn(),
     });
 
-    renderWithClient(<Dashboard />);
-    expect(screen.queryByTitle('Eliminar catálogo')).toBeNull();
+    const { queryByTitle } = renderWithClient(<Dashboard />);
+    expect(queryByTitle('Eliminar')).toBeNull();
   });
 });

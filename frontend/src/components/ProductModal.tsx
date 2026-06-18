@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useCreateProduct } from '../hooks/useCreateProduct';
-import { useUpdateProduct } from '../hooks/useUpdateProduct'; // Importar nuevo hook
-import { X } from 'lucide-react';
+import { useUpdateProduct } from '../hooks/useUpdateProduct';
 import type { Product } from '../types/product';
+import { Modal } from './ui/Modal';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
 
 interface ProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  productToEdit: Product | null; // NULL significa Crear, un objeto significa Editar
+  productToEdit: Product | null; // NULL means Create, object means Edit
 }
 
 export const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, productToEdit }) => {
@@ -16,7 +18,6 @@ export const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, pro
   
   const [formData, setFormData] = useState({ sku: '', name: '', description: '', price: '', initial_stock: '' });
 
-  // Efecto para rellenar el formulario si vamos a editar
   useEffect(() => {
     if (productToEdit) {
       setFormData({
@@ -30,8 +31,6 @@ export const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, pro
       setFormData({ sku: '', name: '', description: '', price: '', initial_stock: '' });
     }
   }, [productToEdit, isOpen]);
-
-  if (!isOpen) return null;
 
   const isEditing = !!productToEdit;
   const isPending = createMutation.isPending || updateMutation.isPending;
@@ -57,51 +56,95 @@ export const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, pro
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-      <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-950 p-6 shadow-2xl text-slate-100">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
-          <h2 className="text-xl font-bold text-white">{isEditing ? 'Editar Producto' : 'Nuevo Producto'}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><X size={20} /></button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? 'Editar Producto' : 'Crear Nuevo Producto'}
+      maxWidth="md"
+    >
+      {error && (
+        <div className="mb-4 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-sm text-rose-400">
+          {(error as any).response?.data?.detail || "Ocurrió un error al procesar el producto."}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Input
+            label="SKU (Código Único)"
+            type="text"
+            disabled={isEditing}
+            required
+            value={formData.sku}
+            onChange={e => setFormData({...formData, sku: e.target.value})}
+            placeholder="Ej: PROD-1001"
+            className={isEditing ? 'opacity-50' : ''}
+          />
+          {isEditing && (
+            <span className="text-[11px] text-zinc-500 block mt-1">
+              El SKU no se puede modificar por integridad del catálogo.
+            </span>
+          )}
         </div>
 
-        {error && (
-          <div className="mb-4 rounded-lg bg-red-500/10 p-3 text-sm text-red-400 border border-red-500/20">
-            {(error as any).response?.data?.detail || "Ocurrió un error."}
-          </div>
-        )}
+        <div>
+          <Input
+            label="Nombre del Producto"
+            type="text"
+            required
+            value={formData.name}
+            onChange={e => setFormData({...formData, name: e.target.value})}
+            placeholder="Ej: Monitor LED 24 pulgadas"
+          />
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
+            Descripción
+          </label>
+          <textarea
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-900/50 p-3 text-sm text-zinc-100 placeholder-zinc-500 transition-all focus:border-emerald-500 focus:bg-zinc-900 focus:outline-hidden focus:ring-1 focus:ring-emerald-500 h-20"
+            value={formData.description}
+            onChange={e => setFormData({...formData, description: e.target.value})}
+            placeholder="Escribe una descripción opcional del producto..."
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">SKU</label>
-            <input type="text" disabled={isEditing} required className="w-full rounded-lg border border-slate-800 bg-slate-900 p-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none disabled:opacity-40" value={formData.sku} onChange={e => setFormData({...formData, sku: e.target.value})} />
-            {isEditing && <span className="text-[11px] text-slate-500">El SKU no se puede modificar por integridad del catálogo.</span>}
+            <Input
+              label="Precio ($)"
+              type="number"
+              step="0.01"
+              required
+              value={formData.price}
+              onChange={e => setFormData({...formData, price: e.target.value})}
+              placeholder="0.00"
+            />
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Nombre</label>
-            <input type="text" required className="w-full rounded-lg border border-slate-800 bg-slate-900 p-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+            <Input
+              label="Stock Físico Inicial"
+              type="number"
+              disabled={isEditing}
+              required
+              value={formData.initial_stock}
+              onChange={e => setFormData({...formData, initial_stock: e.target.value})}
+              placeholder="0"
+              className={isEditing ? 'opacity-50' : ''}
+            />
           </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Descripción</label>
-            <textarea className="w-full rounded-lg border border-slate-800 bg-slate-900 p-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none h-20" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Precio</label>
-              <input type="number" step="0.01" required className="w-full rounded-lg border border-slate-800 bg-slate-900 p-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">Stock Físico</label>
-              <input type="number" disabled={isEditing} required className="w-full rounded-lg border border-slate-800 bg-slate-900 p-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none disabled:opacity-40" value={formData.initial_stock} onChange={e => setFormData({...formData, initial_stock: e.target.value})} />
-            </div>
-          </div>
-          <div className="flex justify-end space-x-3 pt-4 border-t border-slate-800 mt-6">
-            <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors">Cancelar</button>
-            <button type="submit" disabled={isPending} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-md hover:bg-emerald-500 transition-colors disabled:opacity-50">
-              {isPending ? 'Guardando...' : isEditing ? 'Guardar Cambios' : 'Crear Producto'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </div>
+
+        <div className="flex justify-end gap-3 pt-4 border-t border-zinc-800 mt-6">
+          <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>
+            Cancelar
+          </Button>
+          <Button type="submit" variant="primary" isLoading={isPending}>
+            {isEditing ? 'Guardar Cambios' : 'Crear Producto'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 };
